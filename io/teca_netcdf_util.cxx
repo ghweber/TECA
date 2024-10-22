@@ -960,7 +960,7 @@ read_variable::data_t read_variable::operator()(int device_id)
 }
 
 // **************************************************************************
-int write_variable_attributes(netcdf_handle &fh, int var_id,
+int write_variable_attributes(int parent_id, int var_id,
     teca_metadata &array_atts)
 {
     int ierr = 0;
@@ -1001,7 +1001,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_put_att_text(fh.get(),
+            if ((ierr = nc_put_att_text(parent_id,
                 var_id, att_name.c_str(), att_val.size()+1,
                 att_val.c_str())) != NC_NOERR)
             {
@@ -1022,7 +1022,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_put_att(fh.get(), var_id, att_name.c_str(), type,
+            if ((ierr = nc_put_att(parent_id, var_id, att_name.c_str(), type,
                 n_vals, pvals)) != NC_NOERR)
             {
                 TECA_ERROR("failed to put attribute \"" << att_name << "\" "

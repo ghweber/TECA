@@ -149,14 +149,15 @@ protected:
 
     struct var_def_t
     {
-        var_def_t() : var_id(0), type_code(0), active_dims{0,0,0,0} {}
+        var_def_t() : parent_id(0), var_id(0), type_code(0), active_dims{0,0,0,0} {}
 
-        var_def_t(int aid, unsigned int atc, const std::array<int,4> &ada) :
-            var_id(aid), type_code(atc), active_dims(ada) {}
+        var_def_t(int pid, int aid, unsigned int atc, const std::array<int,4> &ada) :
+            parent_id(pid), var_id(aid), type_code(atc), active_dims(ada) {}
 
-        var_def_t(int aid, unsigned int atc) :
-            var_id(aid), type_code(atc), active_dims{0,0,0,0} {}
+        var_def_t(int pid, int aid, unsigned int atc) :
+            parent_id(pid), var_id(aid), type_code(atc), active_dims{0,0,0,0} {}
 
+        int parent_id;
         int var_id;
         unsigned int type_code;
         std::array<int,4> active_dims;

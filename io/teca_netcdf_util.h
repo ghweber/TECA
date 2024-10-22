@@ -407,7 +407,7 @@ private:
  * name is used in error messages. Returns zero of successful.
  */
 TECA_EXPORT
-int write_variable_attributes(netcdf_handle &fh, int var_id,
+int write_variable_attributes(int parent_id, int var_id,
     teca_metadata &array_atts);
 
 }
