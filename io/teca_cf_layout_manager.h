@@ -51,13 +51,16 @@ public:
      * @param[in] compression_level set greater than 1 to enable compression.
      *            this is incomatible with MPI parallel I/O and cannot be used
      *            in a parallel setting.
+     * @param[in] move_vars_to_root move variable in groups to root of file
+     *            (and do not create groups)
      *
      * @returns zero if successful
      */
     int define(const teca_metadata &md, unsigned long *whole_extent,
         const std::vector<std::string> &point_arrays,
         const std::vector<std::string> &info_arrays,
-        int collective_buffer, int compression_level);
+        int collective_buffer, int compression_level,
+        bool move_vars_to_root);
 
     /// writes the collection of arrays to the NetCDF file in the correct spot.
     int write(long index,

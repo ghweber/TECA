@@ -118,7 +118,8 @@ int teca_cf_layout_manager::create(const std::string &file_name,
 int teca_cf_layout_manager::define(const teca_metadata &md_in,
     unsigned long *wextent, const std::vector<std::string> &point_arrays,
     const std::vector<std::string> &info_arrays,
-    int collective_buffer, int compression_level)
+    int collective_buffer, int compression_level,
+    bool move_vars_to_root)
 {
     if (this->defined())
         return 0;
@@ -293,6 +294,20 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
     }
 
+    std::string coord_array_name_in_file[4];
+    for (int i = 0; i < this->n_dims; ++i)
+    {
+        auto pos = coord_array_names[i].rfind('/');
+        if (move_vars_to_root && pos != std::string::npos)
+        {
+            coord_array_name_in_file[i] = coord_array_names[i].substr(pos+1);
+        }
+        else
+        {
+            coord_array_name_in_file[i] = coord_array_names[i];
+        }
+    }
+
     // build the dictionary of names to ncids
     int dim_ids[4] = {-1};
     for (int i = 0; i < this->n_dims; ++i)
@@ -303,8 +318,9 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_def_dim(this->handle.get(), coord_array_names[i].c_str(),
-            this->dims[i], &dim_id)) != NC_NOERR)
+        if ((ierr = nc_def_dim(this->handle.get(),
+            coord_array_name_in_file[i].c_str(), this->dims[i], &dim_id))
+            != NC_NOERR)
         {
             TECA_ERROR("failed to define dimensions for coordinate axis "
                 <<  i << " \"" << coord_array_names[i] << "\" "
@@ -328,8 +344,9 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_def_var(this->handle.get(), coord_array_names[i].c_str(),
-                var_nc_type, 1, &dim_id, &var_id)) != NC_NOERR)
+            if ((ierr = nc_def_var(this->handle.get(),
+                coord_array_name_in_file[i].c_str(), var_nc_type, 1, &dim_id, &var_id))
+                != NC_NOERR)
             {
                 TECA_ERROR("failed to define variables for coordinate axis "
                     <<  i << " \"" << coord_array_names[i] << "\" "
@@ -342,7 +359,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             )
 
         // save the var id
-        this->var_def[coord_array_names[i]] = var_def_t(var_id, var_type_code);
+        this->var_def[coord_array_name_in_file[i]] = var_def_t(var_id, var_type_code);
     }
 
     // define variables for each point array
@@ -589,7 +606,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     for (int i = 0; i < this->n_dims; ++i)
     {
         // look up the var id
-        std::string array_name = coord_array_names[i];
+        std::string array_name = coord_array_name_in_file[i];
         std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
         if (it  == this->var_def.end())
         {
