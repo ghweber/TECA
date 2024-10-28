@@ -589,14 +589,15 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     int var_id, std::string &name, teca_metadata &atts)
 {
     return teca_netcdf_util::read_variable_attributes(fh, parent_group, var_id,
-        "", "", "", "", 0, name, atts);
+        "", "", "", "", "", 0, name, atts);
 }
 
 // **************************************************************************
 int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     int var_id, const std::string &x_axis_variable,
     const std::string &y_axis_variable, const std::string &z_axis_variable,
-    const std::string &t_axis_variable, int clamp_dimensions_of_one,
+    const std::string &t_axis_variable,
+    const std::string &ensemble_dimension_name, int clamp_dimensions_of_one,
     std::string &name, teca_metadata &atts)
 {
     int ierr = 0;
@@ -670,6 +671,24 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     std::vector<size_t> dims;
     std::vector<std::string> dim_names;
 
+    // TODO/FIXME: Originally TECA assumes that dimension name is the same asa
+    // variable name. For variables in groups we are relaxing this assumption to
+    // that the dimension name is the same as the variable name within its
+    // group. We may want to revisit this assumption if we find any data sets
+    // that violate it.
+    auto pos = x_axis_variable.rfind('/');
+    std::string x_axis_name = (pos == std::string::npos) ?
+        x_axis_variable : x_axis_variable.substr(pos + 1);
+    pos = y_axis_variable.rfind('/');
+    std::string y_axis_name = (pos == std::string::npos) ?
+        y_axis_variable : y_axis_variable.substr(pos+1);
+    pos = z_axis_variable.rfind('/');
+    std::string z_axis_name = (pos == std::string::npos) ?
+        z_axis_variable : z_axis_variable.substr(pos+1);
+    pos = t_axis_variable.rfind('/');
+    std::string t_axis_name = (pos == std::string::npos) ?
+        t_axis_variable : t_axis_variable.substr(pos+1);
+
     for (int ii = 0; ii < n_dims; ++ii)
     {
         char dim_name[NC_MAX_NAME + 1] = {'\0'};
@@ -689,8 +708,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
 #endif
         int active = (clamp_dimensions_of_one && (dim == 1) ? 0 : 1);
 
-        if (!x_axis_variable.empty() &&
-            !strcmp(dim_name, x_axis_variable.c_str()))
+        if (!x_axis_name.empty() &&
+            !strcmp(dim_name, x_axis_name.c_str()))
         {
             have_mesh_dim[0] = 1;
             n_mesh_dims += 1;
@@ -698,8 +717,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[0] = active;
             n_active_dims += active;
         }
-        else if (!y_axis_variable.empty() &&
-            !strcmp(dim_name, y_axis_variable.c_str()))
+        else if (!y_axis_name.empty() &&
+            !strcmp(dim_name, y_axis_name.c_str()))
         {
             have_mesh_dim[1] = 1;
             n_mesh_dims += 1;
@@ -707,8 +726,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[1] = active;
             n_active_dims += active;
         }
-        else if (!z_axis_variable.empty() &&
-            !strcmp(dim_name, z_axis_variable.c_str()))
+        else if (!z_axis_name.empty() &&
+            !strcmp(dim_name, z_axis_name.c_str()))
         {
             have_mesh_dim[2] = 1;
             n_mesh_dims += 1;
@@ -716,8 +735,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[2] = active;
             n_active_dims += active;
         }
-        else if (!t_axis_variable.empty() &&
-            !strcmp(dim_name, t_axis_variable.c_str()))
+        else if (!t_axis_name.empty() &&
+            !strcmp(dim_name, t_axis_name.c_str()))
         {
             have_mesh_dim[3] = 1;
             mesh_dim_active[3] = 1;
@@ -730,7 +749,10 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     // can only be point centered if all the dimensions are active coordinate
     // axes
     unsigned int centering = teca_array_attributes::no_centering;
-    if ((n_mesh_dims + have_mesh_dim[3]) == n_dims)
+    // if ((n_mesh_dims + have_mesh_dim[3] == n_dims)
+    int have_ensemble_dim = !ensemble_dimension_name.empty() &&
+        dim_names[0] == ensemble_dimension_name ? 1 : 0;
+    if ((n_mesh_dims + have_mesh_dim[3] + have_ensemble_dim) == n_dims)
     {
         centering = teca_array_attributes::point_centering;
     }

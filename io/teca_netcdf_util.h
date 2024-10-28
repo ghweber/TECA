@@ -269,7 +269,8 @@ TECA_EXPORT
 int read_variable_attributes(netcdf_handle &fh, const std::string &parent_group,
     int var_id, const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
-    int clamp_dimensions_of_one, std::string &name, teca_metadata &atts);
+    const std::string &ensemble_dimension_name, int clamp_dimensions_of_one,
+    std::string &name, teca_metadata &atts);
 
 /**
  * Read the specified variable's name, dimensions, and it's associated
