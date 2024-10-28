@@ -1639,8 +1639,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             return nullptr;
         }
 
-        int file_id = fh.get();
-
         // read requested arrays
         for (size_t i = 0; i < n_arrays; ++i)
         {
@@ -1820,7 +1818,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
+                if ((ierr = nc_get_vara(parent_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
                 {
                     TECA_FATAL_ERROR("Failed to read variable \"" << arrays[i]
                         << "\" starts = [" << starts << "] counts = [" << counts
