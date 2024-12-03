@@ -388,7 +388,7 @@ int read_attribute(int parent_id, int var_id, int att_id, teca_metadata &atts)
 int read_variable_attributes(netcdf_handle &fh,
     const std::string &var_name, teca_metadata &atts)
 {
-    return read_variable_attributes(fh, var_name, "", "", "", "", false, atts);
+    return read_variable_attributes(fh, var_name, "", "", "", "", "", false, atts);
 }
 
 // **************************************************************************
@@ -419,7 +419,8 @@ int get_varid(netcdf_handle &fh, const std::string &var_name,
 int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
-    int clamp_dimensions_of_one, teca_metadata &atts)
+    const std::string &ensemble_dimension_name, int clamp_dimensions_of_one,
+    teca_metadata &atts)
 {
     int ierr = 0;
     int parent_id = 0;
@@ -494,6 +495,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
+    int have_ensemble_dim = 0;
 
     int mesh_dim_active[4] = {0};
     int n_active_dims = 0;
@@ -554,6 +556,11 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
             have_mesh_dim[3] = 1;
             mesh_dim_active[3] = 1;
         }
+        else if (!ensemble_dimension_name.empty() &&
+            !strcmp(dim_name, ensemble_dimension_name.c_str()))
+        {
+            have_ensemble_dim = 1;
+        }
 
         dim_names.push_back(dim_name);
         dims.push_back(dim);
@@ -567,8 +574,6 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
         centering = teca_array_attributes::point_centering;
     }
 
-    // If parent is file, use NC_GLOBAL identifier instead as file handle
-    // may be closed
     atts.set("cf_parent_group", group_name);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
@@ -577,6 +582,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     atts.set("type_code", var_type);
     atts.set("centering", centering);
     atts.set("have_mesh_dim", have_mesh_dim, 4);
+    atts.set("have_ensemble_dim", have_ensemble_dim);
     atts.set("mesh_dim_active", mesh_dim_active, 4);
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
@@ -664,6 +670,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
+    int have_ensemble_dim = 0;
 
     int n_active_dims = 0;
     int mesh_dim_active[4] = {0};
@@ -741,6 +748,11 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             have_mesh_dim[3] = 1;
             mesh_dim_active[3] = 1;
         }
+        else if (!ensemble_dimension_name.empty() &&
+             !strcmp(dim_name, ensemble_dimension_name.c_str()))
+        {
+            have_ensemble_dim = 1;
+        }
 
         dim_names.push_back(dim_name);
         dims.push_back(dim);
@@ -750,8 +762,6 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     // axes
     unsigned int centering = teca_array_attributes::no_centering;
     // if ((n_mesh_dims + have_mesh_dim[3] == n_dims)
-    int have_ensemble_dim = !ensemble_dimension_name.empty() &&
-        dim_names[0] == ensemble_dimension_name ? 1 : 0;
     if ((n_mesh_dims + have_mesh_dim[3] + have_ensemble_dim) == n_dims)
     {
         centering = teca_array_attributes::point_centering;
@@ -767,6 +777,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     atts.set("type_code", var_type);
     atts.set("centering", centering);
     atts.set("have_mesh_dim", have_mesh_dim);
+    atts.set("have_ensemble_dim", have_ensemble_dim);
     atts.set("mesh_dim_active", mesh_dim_active);
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
@@ -799,7 +810,7 @@ read_variable_and_attributes::operator()(int device_id)
     int ierr = 0;
     teca_metadata atts;
     if (teca_netcdf_util::read_variable_attributes(fh,
-        m_variable, "", "", "", "", false, atts))
+        m_variable, "", "", "", "", "", false, atts))
     {
         TECA_ERROR("Failed to read \"" << m_variable << "\" attributes")
         return this->package(m_id);

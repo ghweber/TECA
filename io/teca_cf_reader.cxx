@@ -1662,6 +1662,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             int parent_id = 0;
             int id = 0;
             int have_mesh_dim[4] = {0};
+            int have_ensemble_dim = 0;
             int mesh_dim_active[4] = {0};
             unsigned int centering = teca_array_attributes::no_centering;
             std::vector<size_t> cf_dims;
@@ -1675,6 +1676,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 || atts.get("cf_dim_names", cf_dim_names)
                 || atts.get("centering", centering)
                 || atts.get("have_mesh_dim", have_mesh_dim, 4)
+                || atts.get("have_ensemble_dim", have_ensemble_dim)
                 || atts.get("mesh_dim_active", mesh_dim_active, 4))
             {
                 TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
@@ -1735,10 +1737,15 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 // subset point centered variables based on the incoming requested
                 // extent.
 
-                 // TODO/FIXME: Currently we assume that the ensemble is the first
-                 // dimension in the data set.
-                 if (!this->ensemble_dimension_name.empty() &&
-                     cf_dim_names[0] == this->ensemble_dimension_name)
+                // TODO/FIXME: The following assumes that the ensemble dimension
+                // comes first in the data layout when selecting the subset of
+                // a point variable. Since TECA already assumes a layout
+                // of time/z/y/x in the file (see code below that hardcodes
+                // populating starts/stops in the order have_mesh_dim[2], which
+                // cooresponds to t to have_mesh_dim[0], which corresponds to x)
+                // this seems to be a reasonable assumption, but still worth
+                // noting.
+                if (have_ensemble_dim)
                 {
                     starts.push_back(this->select_ensemble_member_index);
                     counts.push_back(1);
