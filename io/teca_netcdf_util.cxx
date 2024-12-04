@@ -992,8 +992,9 @@ int write_variable_attributes(int parent_id, int var_id,
             (att_name == "cf_dims") || (att_name == "cf_dim_names") ||
             (att_name == "type_code") || (att_name == "cf_type_code") ||
             (att_name == "centering") || (att_name == "size") ||
-            (att_name == "have_mesh_dim") || (att_name == "mesh_dim_active") ||
-            (att_name == "n_mesh_dims") || (att_name == "n_active_dims"))
+            (att_name == "have_mesh_dim") || (att_name == "have_ensemble_dim") ||
+            (att_name == "mesh_dim_active") || (att_name == "n_mesh_dims") ||
+            (att_name == "n_active_dims"))
             continue;
 
         // get the attribute value
