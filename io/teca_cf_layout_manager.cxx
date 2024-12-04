@@ -17,38 +17,57 @@
 
 namespace
 {
+ /**
+ * Parse a fully-qualified variable path to determine its group ID and name within the group.
+ * Create the group if it does not already exist.
+ *
+ * @param[in] file_id Identifier for the NetCDF file where the group and variable reside.
+ * @param[in] full_path_varname Fully-qualified variable path (e.g., "group/variable").
+ * @param[in] move_vars_to_root Flag indicating whether to assign the variable to the root group, ignoring the group hierarchy.
+ * @param[out] parent_id Identifier of the group where the variable resides. This is the root group if `move_vars_to_root` is true.
+ * @param[out] name_in_group Name of the variable within its group.
+ *
+ * @return 0 on success, -1 on error (e.g., unsupported nested groups or failure to create/query the group).
+ */
     int full_path_varname_to_group_id_and_name_in_group(int file_id,
         const std::string& full_path_varname, bool move_vars_to_root,
         int &parent_id, std::string& name_in_group)
     {
+        // Split full_path_varname into group and data set name within group
+        // components. First, find the position of the last '/' in the name.
+        // The part after that is the data set name.
         std::string::size_type pos = full_path_varname.rfind('/');
         if (pos != std::string::npos)
         {
+            // Found a '/', so data set should be in a group. Extract group
+            // name and data set name as string portions before and after the
+            // '/'
             std::string parent_group_name = full_path_varname.substr(0, pos);
             name_in_group = full_path_varname.substr(pos+1);
-            //std::string parent_group_name = "global";
-            //name_in_group = (pos == std::string::npos) ? full_path_varname : full_path_varname.substr(pos+1);
 
             if (move_vars_to_root)
             {
-                // When moving to root, we just ignore the extracted group name
-                // and return the file_id as parent_id
+                // When moving data sets to root, just ignore the extracted
+                // group name and return the file_id as parent_id
                 parent_id = file_id;
             }
             else
             {
+                // Otherwise create the group as needed.
+                // Check for nested groups, which we currently do not support
                 if (parent_group_name.rfind('/') != std::string::npos)
                 {
                     // TODO/FIXME: Nested groups add more complexity and are
                     // currently not supported by reader. This case should
-                    // not occur, but add test to catch this if it occurs in
-                    // the future.
+                    // not occur as the reader does not support it either,
+                    // but add test to catch this if it occurs in the future.
                     TECA_ERROR("Nested groups as in \"" << full_path_varname
                         << "\" are currently not supported!")
                     return -1;
                 }
 
                 int ierr;
+                // Check if group already exists in file by trying to get its id
                 if ((ierr = nc_inq_grp_ncid(file_id, parent_group_name.c_str(),
                     &parent_id)) != NC_NOERR)
                 {
@@ -80,6 +99,7 @@ namespace
         }
         else
         {
+            // Full name does not contain a `/`, so variable is in root group
             parent_id = file_id;
             name_in_group = full_path_varname;
         }
